@@ -36,19 +36,22 @@ class CropDuster:
          
         shares = []
         # if a specific share is chosen
-        # loop through avbl shares to find it (hopefully)
+        # this bit loops through avbl shares to find it (hopefully)
         if self.share != "All":
             for share in avbl_shares:
                 share_name = share["name"]
                 if share_name == self.share:
+                    # found it
                     self.logger.success(f'Found share:\t{self.share}')
+                    # add it to shares list
                     shares.append(share)
                     break
             # if we couldnt find the share, bail
             if not shares:
                 self.logger.fail(f'Cannot find share:\t{self.share}')
                 return
-        # if no specific share has been chosen, just add all available shares
+        # if no specific share has been chosen
+        # just add all available shares
         else:
             shares = avbl_shares
 
@@ -89,7 +92,8 @@ class CropDuster:
                         suitable_shares.append(share_name)
                         continue
 
-            # # if we've got some suitable shares
+            # now we've got some suitable shares
+            # lets print them
             if suitable_shares:
                 self.logger.display(f'Shares to use:')
                 for share in suitable_shares:
@@ -98,29 +102,29 @@ class CropDuster:
             # quit if no suitable shares
             else:
                 self.logger.fail('No suitable shares')
-                quit()
+                return
 
             # here we recursively find all writable paths in each share
             # or use the specific chosen folder
             for share in suitable_shares:
-                dir_results = {}
-                dir_results[share_name] = {}
+                
+                dir_results = {share: {}}
                 # if a specific folder on a share was chosen
                 # just set the dir results to that
                 if self.folder != "All":
                     dirs = []
                     dirs.append(self.folder)
-                    dir_results[share_name] = dirs
+                    dir_results[share] = dirs
                 # otherwise, recursively find all dirs on share(s)
                 else:
                     try:
-                        dir_results[share_name] = self.get_dirs(share)
+                        dir_results[share] = self.get_dirs(share)
                         # always add the base dir of the share
-                        dir_results[share_name].append("//")
+                        dir_results[share].append("//")
                         self.logger.display(f"Directories on {share}:")
 
                         # list the directories we found
-                        for dir in dir_results[share_name]:
+                        for dir in dir_results[share]:
                             self.logger.success(f"{dir}")
                         self.logger.display(f"")
 
@@ -129,10 +133,10 @@ class CropDuster:
                 
                 # here we drop or clean
                 if not self.cleanup:
-                    for dir in dir_results[share_name]:
+                    for dir in dir_results[share]:
                         self.drop(share, dir)
                 else:
-                    for dir in dir_results[share_name]:
+                    for dir in dir_results[share]:
                         self.clean(share, dir)
 
         # some unknown error
@@ -149,7 +153,8 @@ class CropDuster:
         self.logger.display(f"Share:\t{share}")
         self.logger.display(f"Dir:\t{directory}")
         file_name = self.filename + extension
-        drop_path = ntpath.join(f'\\', '{}'.format(directory), '{}'.format(file_name))
+        drop_path = ntpath.join(directory, file_name)
+        #drop_path = ntpath.join(f'\\', '{}'.format(directory), '{}'.format(file_name))
         with open(self.scfile_path, "rb") as scfile:
             try:
                 self.smb.conn.putFile(share, drop_path, scfile.read)
@@ -167,7 +172,8 @@ class CropDuster:
         self.logger.display(f"Share:\t{share}")
         self.logger.display(f"Dir:\t{directory}")
         file_name = self.filename + extension
-        drop_path = ntpath.join(f'\\', '{}'.format(directory), '{}'.format(file_name))
+        drop_path = ntpath.join(directory, file_name)
+        #drop_path = ntpath.join(f'\\', '{}'.format(directory), '{}'.format(file_name))
         try:
             self.smb.conn.deleteFile(share, drop_path)
             self.logger.success(f"Cleaned:\t{drop_path}")
